@@ -81,5 +81,4 @@ if __name__ == "__main__":
     obj = Scanner('tvh.com')
     obj.permutation()
     obj.subfinder()
-    obj.subdomain_brtFC()
     obj.github()
