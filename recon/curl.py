@@ -109,7 +109,7 @@ class curl:
             "cat *.txt "
             "| sed -E 's#^(https?://)##; s#^#https://#' "
             "| uro "
-            "| httpx -mc 200,301,403,401 -silent > Curl_Url.txt"
+            "| httpx -mc 200,301,403,401 -silent --status-code > Curl_Url.txt"
         )
         os.system(cmd)
         count = os.popen('wc -l < Curl_Url.txt').read().strip()
@@ -122,10 +122,11 @@ class curl:
         
 
 if __name__ == '__main__':
-    obj = curl('abc.com') #use site.com 
+    obj = curl('tvh.com') #use site.com 
     obj.folder()
     obj.crt()
     obj.alien_vault()
     obj.virus_total()
     obj.wayback()
+    obj.CSP_header()
     obj.cleaner()

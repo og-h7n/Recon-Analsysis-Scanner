@@ -20,7 +20,7 @@ class Amass:
         os.system(cmd)
 
         print("[+]Scan completed")
-        print(f"[+]Amass found: {os.popen('wc -l < Amass_P.txt').read().strip()} ")
+        print(f"[+]Amass found: {os.popen('wc -l < Amass_A.txt').read().strip()} ")
         print("[+]File saved to Amass_A.txt")
 
 #using passive scan
