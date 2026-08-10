@@ -54,7 +54,7 @@ class Scanner:
         os.system(cmd)
 
         print('[+] Subdomains Discovery Done')
-        print(f'[+] Github found {os.popen("wc -l < Github.txt").read().strip()} domains')
+        print(f'[+] Github found {os.popen(f"wc -l < {self.target}.txt").read().strip()} domains')
 
 
 
