@@ -21,7 +21,7 @@ class asn:
         result = subprocess.run(
             [
                 "bash", "-c",
-                'curl -s "https://stat.ripe.net/data/searchcomplete/data.json?resource=paypal" '
+                f'curl -s "https://stat.ripe.net/data/searchcomplete/data.json?resource={self.target}" '
                 '| jq -r \'.data.categories[] | select(.category=="ASNs") | .suggestions[].value\''
             ],
             capture_output=True,
