@@ -46,8 +46,3 @@ class Amass:
 
 
 
-
-
-obj = Amass('tvh.com')
-obj.active()
-obj.passive()

@@ -91,5 +91,3 @@ class asn:
     
     
 
-obj = asn('paypal')
-obj.reverse_ip_lookup()
