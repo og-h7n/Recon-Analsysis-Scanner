@@ -18,7 +18,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WRAPPER_PATH="/usr/local/bin/analysis"
 
-echo "[*] Recon tool located at: $SCRIPT_DIR"
+echo "[*] Analysis tool located at: $SCRIPT_DIR"
 
 if [ ! -f "$SCRIPT_DIR/main.py" ]; then
     echo "[!] main.py not found in $SCRIPT_DIR - run this script from inside the project folder."
