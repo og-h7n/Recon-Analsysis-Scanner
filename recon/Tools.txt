@@ -8,3 +8,4 @@ httpx
 dnsvalidator
 puredns
 SECLISTS -- download them in /usr/share/seclists
+bgpq4

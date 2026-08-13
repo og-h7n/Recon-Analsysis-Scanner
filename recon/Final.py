@@ -300,7 +300,6 @@ def main(target: str):
                 "-f _screenshot_targets_.txt "
                 "--threads 5 "
                 "--chrome-path $(which brave-browser) "
-                "--db-location screenshots/gowitness.db "
                 "--screenshot-path screenshots/"
             )
             os.system(cmd)
