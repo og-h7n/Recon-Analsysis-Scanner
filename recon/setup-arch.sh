@@ -1,20 +1,16 @@
 #!/usr/bin/env bash
 # =============================================================================
-# setup.sh — Recon Scanner full environment setup
-#
-# Installs all required tools, prompts for API keys, sets up environment
-# variables, and creates a global `recon` command.
+# setup-arch.sh — Recon Scanner full environment setup for Arch Linux
 #
 # Usage:
-#   chmod +x setup.sh
-#   ./setup.sh
+#   chmod +x setup-arch.sh
+#   ./setup-arch.sh
 #
 # -h7n
 # =============================================================================
 
 set -e
 
-# colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -34,7 +30,7 @@ banner() {
     echo "  ██║  ██║███████╗╚██████╗╚██████╔╝██║ ╚████║"
     echo "  ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝"
     echo -e "${RESET}"
-    echo -e "${BOLD}  Scanner Setup Script${RESET}"
+    echo -e "${BOLD}  Scanner Setup — Arch Linux${RESET}"
     echo -e "  ${YELLOW}-h7n${RESET}"
     echo ""
 }
@@ -46,65 +42,81 @@ error()   { echo -e "${RED}[!]${RESET} $1"; }
 section() { echo ""; echo -e "${BOLD}${CYAN}── $1 ──${RESET}"; echo ""; }
 
 # =============================================================================
-# 0. Preflight checks
+# 0. Preflight
 # =============================================================================
 banner
-
 section "Preflight Checks"
 
-# must not be run as root
 if [ "$EUID" -eq 0 ]; then
-    warn "Running as root is not recommended — some go tools may behave oddly."
-    read -rp "Continue anyway? [y/N] " confirm
-    [[ "$confirm" =~ ^[Yy]$ ]] || exit 1
-fi
-
-# check OS
-if ! command -v apt &>/dev/null; then
-    error "This script is designed for Debian/Ubuntu/Mint (apt-based systems)."
-    error "Adapt the apt install lines for your distro if needed."
+    error "Do not run as root on Arch — pacman and yay require a normal user."
     exit 1
 fi
 
-# check internet
+if ! command -v pacman &>/dev/null; then
+    error "pacman not found — this script is for Arch Linux only."
+    exit 1
+fi
+
 if ! curl -s --max-time 5 https://github.com > /dev/null; then
-    error "No internet connection detected — cannot install tools."
+    error "No internet connection detected."
     exit 1
 fi
 
 log "System checks passed"
 
 # =============================================================================
+# AUR helper — yay
+# =============================================================================
+section "AUR Helper (yay)"
+
+if command -v yay &>/dev/null; then
+    log "yay already installed — skipping"
+else
+    info "Installing yay..."
+    sudo pacman -S --needed --noconfirm git base-devel
+    git clone https://aur.archlinux.org/yay.git /tmp/yay-install
+    cd /tmp/yay-install && makepkg -si --noconfirm
+    cd "$SCRIPT_DIR"
+    rm -rf /tmp/yay-install
+    log "yay installed"
+fi
+
+# =============================================================================
 # 1. System dependencies
 # =============================================================================
 section "System Dependencies"
 
-info "Updating apt..."
-sudo apt update -qq
+info "Updating system..."
+sudo pacman -Syu --noconfirm
 
 info "Installing base packages..."
-sudo apt install -y \
-    curl wget git jq build-essential \
-    python3 python3-pip \
-    nmap wafw00f whatweb \
-    dnsutils whois \
-    golang-go 2>/dev/null || true
+sudo pacman -S --needed --noconfirm \
+    curl wget git jq \
+    python python-pip \
+    nmap go \
+    whois bind-tools \
+    base-devel
 
 log "System packages installed"
 
-# ensure go bin is on PATH
+# go bin on PATH
 if [[ ":$PATH:" != *":$HOME/go/bin:"* ]]; then
     echo 'export PATH="$HOME/go/bin:$PATH"' >> ~/.bashrc
     export PATH="$HOME/go/bin:$PATH"
     log "Added ~/go/bin to PATH"
 fi
 
+info "Installing wafw00f and whatweb from AUR..."
+yay -S --needed --noconfirm wafw00f whatweb 2>/dev/null || \
+    warn "wafw00f/whatweb AUR install failed — install manually if needed"
+
 # =============================================================================
 # 2. Python dependencies
 # =============================================================================
 section "Python Dependencies"
 
-pip install rich mmh3 requests --break-system-packages -q
+pip install rich mmh3 requests --break-system-packages -q 2>/dev/null || \
+    pip install rich mmh3 requests -q
 log "Python packages installed (rich, mmh3, requests)"
 
 # =============================================================================
@@ -119,7 +131,8 @@ install_go_tool() {
         log "$name already installed — skipping"
     else
         info "Installing $name..."
-        go install "$pkg" 2>/dev/null && log "$name installed" || warn "$name install failed — check manually"
+        go install "$pkg" 2>/dev/null && log "$name installed" || \
+            warn "$name install failed — check manually"
     fi
 }
 
@@ -139,17 +152,20 @@ install_go_tool "bgpq4"              "github.com/bgp/bgpq4@latest"
 install_go_tool "gau"                "github.com/lc/gau/v2/cmd/gau@latest"
 
 # =============================================================================
-# 4. Amass (separate install — large binary)
+# 4. Amass
 # =============================================================================
 section "Amass"
 
 if command -v amass &>/dev/null; then
     log "amass already installed — skipping"
 else
-    info "Installing amass..."
-    go install github.com/owasp-amass/amass/v4/...@master 2>/dev/null && \
-        log "amass installed" || \
-        warn "amass install failed — install manually: https://github.com/owasp-amass/amass"
+    info "Installing amass via AUR..."
+    yay -S --needed --noconfirm amass 2>/dev/null && log "amass installed via AUR" || {
+        warn "AUR failed — trying go install..."
+        go install github.com/owasp-amass/amass/v4/...@master 2>/dev/null && \
+            log "amass installed via go" || \
+            warn "amass install failed — install manually"
+    }
 fi
 
 # =============================================================================
@@ -161,9 +177,9 @@ if command -v dnsvalidator &>/dev/null; then
     log "dnsvalidator already installed — skipping"
 else
     info "Installing dnsvalidator..."
-    pip install dnsvalidator --break-system-packages -q && \
-        log "dnsvalidator installed" || \
-        warn "dnsvalidator install failed"
+    pip install dnsvalidator --break-system-packages -q 2>/dev/null || \
+        pip install dnsvalidator -q
+    log "dnsvalidator installed"
 fi
 
 # =============================================================================
@@ -172,36 +188,32 @@ fi
 section "SecLists"
 
 if [ -d "/usr/share/seclists" ]; then
-    log "SecLists already installed at /usr/share/seclists"
-    info "Pulling latest updates..."
-    sudo git -C /usr/share/seclists pull -q && log "SecLists updated" || warn "SecLists update failed"
+    log "SecLists already at /usr/share/seclists — pulling updates..."
+    sudo git -C /usr/share/seclists pull -q && log "SecLists updated" || \
+        warn "SecLists update failed"
 else
-    info "Cloning SecLists to /usr/share/seclists (this may take a few minutes)..."
-    sudo git clone --depth 1 https://github.com/danielmiessler/SecLists.git /usr/share/seclists && \
-        log "SecLists installed" || \
-        warn "SecLists clone failed — install manually"
+    info "Installing SecLists via AUR..."
+    yay -S --needed --noconfirm seclists 2>/dev/null && log "SecLists installed via AUR" || {
+        warn "AUR failed — cloning manually..."
+        sudo git clone --depth 1 https://github.com/danielmiessler/SecLists.git \
+            /usr/share/seclists && log "SecLists cloned" || \
+            warn "SecLists clone failed — install manually"
+    }
 fi
 
 # =============================================================================
-# 7. Brave browser (for gowitness screenshots)
+# 7. Brave browser
 # =============================================================================
 section "Brave Browser (for gowitness)"
 
-if command -v brave-browser &>/dev/null; then
+if command -v brave-browser &>/dev/null || command -v brave &>/dev/null; then
     log "Brave already installed — skipping"
 else
-    warn "Brave not found — gowitness needs a Chrome-based browser for screenshots."
-    read -rp "Install Brave browser now? [y/N] " install_brave
+    warn "Brave not found — gowitness needs a Chrome-based browser."
+    read -rp "Install Brave via AUR? [y/N] " install_brave
     if [[ "$install_brave" =~ ^[Yy]$ ]]; then
-        info "Installing Brave..."
-        sudo apt install -y apt-transport-https curl
-        sudo curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg \
-            https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
-        echo "deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg arch=amd64] \
-https://brave-browser-apt-release.s3.brave.com/ stable main" | \
-            sudo tee /etc/apt/sources.list.d/brave-browser-release.list
-        sudo apt update -qq && sudo apt install -y brave-browser
-        log "Brave installed"
+        yay -S --needed --noconfirm brave-bin && log "Brave installed" || \
+            warn "Brave install failed — try: yay -S brave-bin"
     else
         warn "Skipping Brave — screenshots will fail until a Chrome-based browser is installed."
     fi
@@ -215,25 +227,17 @@ section "API Keys"
 echo -e "The following API keys are needed for full coverage."
 echo -e "Press ${YELLOW}Enter${RESET} to skip any you don't have yet.\n"
 
-read -rp "  VirusTotal API key   (VIRUS_TOTAL)  : " VT_KEY
-read -rp "  GitHub Token         (GITHUB_TOKEN) : " GH_TOKEN
-read -rp "  Chaos/PDCP API key   (PDCP_API_KEY) : " CHAOS_KEY
-read -rp "  Shodan API key       (SHODAN_API_KEY): " SHODAN_KEY
-read -rp "  FOFA email           (FOFA_EMAIL)   : " FOFA_EMAIL
-read -rp "  FOFA API key         (FOFA_KEY)     : " FOFA_KEY
-read -rp "  Hunter.how API key   (HUNTER_KEY)   : " HUNTER_KEY
+read -rp "  VirusTotal API key    (VIRUS_TOTAL)   : " VT_KEY
+read -rp "  GitHub Token          (GITHUB_TOKEN)  : " GH_TOKEN
+read -rp "  Chaos/PDCP API key    (PDCP_API_KEY)  : " CHAOS_KEY
 
-# write to ~/.bashrc
 {
     echo ""
     echo "# ── Recon Scanner API Keys ──"
     [ -n "$VT_KEY"     ] && echo "export VIRUS_TOTAL=\"$VT_KEY\""
     [ -n "$GH_TOKEN"   ] && echo "export GITHUB_TOKEN=\"$GH_TOKEN\""
     [ -n "$CHAOS_KEY"  ] && echo "export PDCP_API_KEY=\"$CHAOS_KEY\""
-    [ -n "$SHODAN_KEY" ] && echo "export SHODAN_API_KEY=\"$SHODAN_KEY\""
-    [ -n "$FOFA_EMAIL" ] && echo "export FOFA_EMAIL=\"$FOFA_EMAIL\""
-    [ -n "$FOFA_KEY"   ] && echo "export FOFA_KEY=\"$FOFA_KEY\""
-    [ -n "$HUNTER_KEY" ] && echo "export HUNTER_KEY=\"$HUNTER_KEY\""
+
 } >> ~/.bashrc
 
 source ~/.bashrc
@@ -250,7 +254,7 @@ info "Creating global 'recon' command at $WRAPPER..."
 sudo tee "$WRAPPER" > /dev/null << EOF
 #!/usr/bin/env bash
 # Recon Scanner — global wrapper
-# Installed by setup.sh from $SCRIPT_DIR
+# Installed by setup-arch.sh from $SCRIPT_DIR
 # -h7n
 
 source "\$HOME/.bashrc" 2>/dev/null || true
@@ -261,7 +265,7 @@ sudo chmod +x "$WRAPPER"
 log "Global 'recon' command installed"
 
 # =============================================================================
-# 10. Verify everything installed
+# 10. Verification
 # =============================================================================
 section "Verification"
 
