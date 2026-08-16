@@ -183,8 +183,7 @@ outputs:
 | GitHub token | https://github.com/settings/tokens | `GITHUB_TOKEN` |
 | Chaos / PDCP | https://cloud.projectdiscovery.io | `PDCP_API_KEY` |
 | Shodan | https://account.shodan.io | `SHODAN_API_KEY` |
-| FOFA | https://fofa.info | `FOFA_EMAIL` + `FOFA_KEY` |
-| Hunter.how | https://hunter.how | `HUNTER_KEY` |
+
 
 both setup scripts prompt for these and save them to `~/.bashrc` automatically.
 
