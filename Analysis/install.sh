@@ -34,5 +34,5 @@ EOF
 
 sudo chmod +x "$WRAPPER_PATH"
 
-echo "[+] Installed. Run 'recon target.com' from anywhere."
+echo "[+] Installed. Run 'analysis target.com' from anywhere."
 echo "[+] Uninstall anytime with: sudo rm $WRAPPER_PATH"
