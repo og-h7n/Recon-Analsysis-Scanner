@@ -67,7 +67,7 @@ if ! command -v apt &>/dev/null; then
 fi
 
 # check internet
-if ! curl -s --max-time 5 https://github.com > /dev/null; then
+if ! ping -c 1 -W 3 8.8.8.8 > /dev/null 2>&1; then
     error "No internet connection detected — cannot install tools."
     exit 1
 fi
@@ -218,8 +218,10 @@ echo -e "Press ${YELLOW}Enter${RESET} to skip any you don't have yet.\n"
 read -rp "  VirusTotal API key   (VIRUS_TOTAL)  : " VT_KEY
 read -rp "  GitHub Token         (GITHUB_TOKEN) : " GH_TOKEN
 read -rp "  Chaos/PDCP API key   (PDCP_API_KEY) : " CHAOS_KEY
-
-
+read -rp "  Shodan API key       (SHODAN_API_KEY): " SHODAN_KEY
+read -rp "  FOFA email           (FOFA_EMAIL)   : " FOFA_EMAIL
+read -rp "  FOFA API key         (FOFA_KEY)     : " FOFA_KEY
+read -rp "  Hunter.how API key   (HUNTER_KEY)   : " HUNTER_KEY
 
 # write to ~/.bashrc
 {
@@ -228,7 +230,10 @@ read -rp "  Chaos/PDCP API key   (PDCP_API_KEY) : " CHAOS_KEY
     [ -n "$VT_KEY"     ] && echo "export VIRUS_TOTAL=\"$VT_KEY\""
     [ -n "$GH_TOKEN"   ] && echo "export GITHUB_TOKEN=\"$GH_TOKEN\""
     [ -n "$CHAOS_KEY"  ] && echo "export PDCP_API_KEY=\"$CHAOS_KEY\""
-
+    [ -n "$SHODAN_KEY" ] && echo "export SHODAN_API_KEY=\"$SHODAN_KEY\""
+    [ -n "$FOFA_EMAIL" ] && echo "export FOFA_EMAIL=\"$FOFA_EMAIL\""
+    [ -n "$FOFA_KEY"   ] && echo "export FOFA_KEY=\"$FOFA_KEY\""
+    [ -n "$HUNTER_KEY" ] && echo "export HUNTER_KEY=\"$HUNTER_KEY\""
 } >> ~/.bashrc
 
 source ~/.bashrc
@@ -300,4 +305,5 @@ echo -e "  Reload your shell first if 'recon' isn't found:"
 echo -e "  ${BOLD}source ~/.bashrc${RESET}"
 echo ""
 echo -e "  ${YELLOW}-h7n${RESET}"
+echo ""
 echo ""
