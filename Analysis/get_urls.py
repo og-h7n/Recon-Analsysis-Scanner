@@ -76,20 +76,30 @@ class GetAllUrls:
 
 
 
-#Removing duplicates -> then checking for their live 
+#Removing duplicates -> then checking for their live -> separating 403 for bypassing
 
-    def rm_junk(self): #removing duplicates
+    def rm_junk(self):
         self.__make__file('_LiveUrls_')
-        print('[+]Removing duplicates and checking for liveness')
-        
-        cmd = 'cat _gau_.txt _katana_.txt _gospider_.txt | uro | httpx -mc 200,301,302,403 -silent  > _LiveUrls_.txt' #opening all the files
-        print(f'[+]Process starting')
-        print(f'[+]File created _LiveUrls_.txt')
+        print('[+] Removing duplicates and checking for liveness')
 
+        # run httpx with status codes into a temp file
+        cmd = 'cat _gau_.txt _katana_.txt _gospider_.txt | uro | httpx -mc 200,301,302,403,401 -silent -sc > _live_with_status_.txt'
         os.system(cmd)
 
+        # clean URLs only → _LiveUrls_.txt (for downstream tools)
+        os.system("awk '{print $1}' _live_with_status_.txt > _LiveUrls_.txt")
+
+        # 403/401 URLs only → _bypass_.txt (for bypass testing)
+        os.system("grep -E '\\[403\\]|\\[401\\]' _live_with_status_.txt | awk '{print $1}' > _bypass_.txt")
+
+        # cleanup temp file
+        os.remove('_live_with_status_.txt')
+
         count = os.popen('wc -l < _LiveUrls_.txt').read().strip()
-        print(f'[+]Current URls : {count}')
+        bypass_count = os.popen('wc -l < _bypass_.txt').read().strip()
+
+        print(f'[+] _LiveUrls_.txt — {count} live endpoints (clean URLs)')
+        print(f'[+] _bypass_.txt   — {bypass_count} potential bypass targets (403/401)')
 
 
     def screen_shot(self):
